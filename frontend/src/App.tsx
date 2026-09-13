@@ -40,7 +40,23 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
+    // Check if returning from Google OAuth callback URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const authCode = urlParams.get('code');
+    const isCallbackPath = window.location.pathname.includes('/oauth/callback');
+
+    if (authCode && (isCallbackPath || window.location.search.includes('code='))) {
+      api.gmailOauthCallback(authCode)
+        .then(() => {
+          // Clean URL and switch to Integrations tab
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setCurrentTab('integrations');
+        })
+        .catch((err) => console.error('OAuth callback exchange failed:', err))
+        .finally(() => loadData());
+    } else {
+      loadData();
+    }
   }, []);
 
   const handleTriggerScan = async () => {
