@@ -37,6 +37,7 @@ export const api = {
   gmailOauthCallback: (code: string) => fetchJson<{ success: boolean; message?: string }>(`/gmail/oauth-callback?code=${encodeURIComponent(code)}`, {
     method: 'POST',
   }),
+  testGmailConnection: () => fetchJson<{ success: boolean; http_status: number; email_address_present?: boolean; error?: string }>('/gmail/test'),
   scanEmails: (maxEmails = 10) => fetchJson<{ success: boolean; processed_count: number; alerts_generated: number }>('/gmail/scan', {
     method: 'POST',
     body: JSON.stringify({ max_emails: maxEmails }),

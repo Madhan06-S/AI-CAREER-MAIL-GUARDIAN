@@ -6,6 +6,8 @@ import { api } from '../services/api';
 export const Integrations: React.FC = () => {
   const [diagnostics, setDiagnostics] = useState<SystemDiagnostics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [gmailTesting, setGmailTesting] = useState(false);
+  const [gmailTestResult, setGmailTestResult] = useState<string | null>(null);
 
   const fetchStatus = () => {
     setLoading(true);
@@ -18,6 +20,23 @@ export const Integrations: React.FC = () => {
   useEffect(() => {
     fetchStatus();
   }, []);
+
+  const handleTestGmail = async () => {
+    setGmailTesting(true);
+    setGmailTestResult(null);
+    try {
+      const res = await api.testGmailConnection();
+      if (res.success) {
+        setGmailTestResult('✓ Gmail API connection verified (Live Profile Check HTTP 200)');
+      } else {
+        setGmailTestResult(`❌ Gmail API test failed: ${res.error || 'HTTP ' + res.http_status}`);
+      }
+    } catch (e: any) {
+      setGmailTestResult(`❌ Gmail test error: ${e.message}`);
+    } finally {
+      setGmailTesting(false);
+    }
+  };
 
   return (
     <div>
@@ -65,7 +84,34 @@ export const Integrations: React.FC = () => {
 
               <p style={{ fontSize: '0.88rem', color: '#94a3b8', lineHeight: '1.5' }}>{item.details}</p>
 
-              {item.auth_url && (
+              {item.service === 'Gmail API' && (
+                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {item.connected ? (
+                    <button onClick={handleTestGmail} disabled={gmailTesting} className="btn-secondary" style={{ fontSize: '0.8rem', justifyContent: 'center' }}>
+                      <RefreshCw style={{ width: '14px', height: '14px', animation: gmailTesting ? 'spin 1s linear infinite' : 'none' }} />
+                      {gmailTesting ? 'Testing Gmail API...' : 'Test Gmail Connection'}
+                    </button>
+                  ) : null}
+
+                  {item.auth_url && (
+                    <a
+                      href={item.auth_url}
+                      className="btn-primary"
+                      style={{ textDecoration: 'none', justifyContent: 'center', fontSize: '0.82rem' }}
+                    >
+                      <ExternalLink style={{ width: '14px', height: '14px' }} /> Connect Google Account
+                    </a>
+                  )}
+
+                  {gmailTestResult && (
+                    <span style={{ fontSize: '0.78rem', color: gmailTestResult.includes('✓') ? '#10b981' : '#ef4444', fontWeight: 600, display: 'block', marginTop: '0.2rem' }}>
+                      {gmailTestResult}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {item.service !== 'Gmail API' && item.auth_url && (
                 <a
                   href={item.auth_url}
                   className="btn-primary"

@@ -23,6 +23,12 @@ async def gmail_oauth_callback(
         raise HTTPException(status_code=400, detail="OAuth authorization exchange failed.")
     return {"success": True, "message": "Gmail OAuth tokens stored successfully."}
 
+@router.get("/test")
+async def test_gmail_connection(user: UserContext = Depends(get_current_user)):
+    """Executes a real Gmail API profile request to verify stored OAuth credentials."""
+    result = await gmail_service.test_gmail_connection(user.uid)
+    return result
+
 @router.post("/scan")
 async def scan_emails(
     request: EmailScanRequest,
