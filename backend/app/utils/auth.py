@@ -46,11 +46,11 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> UserC
     """
     Validates Firebase ID Token from Authorization header.
     Extracts authenticated `uid` directly from verified token payload.
-    Ensures zero-trust user isolation across all routes.
+    In development mode (APP_ENV=development), permits 'mock_dev_token' for local dev sessions.
+    In production mode, strictly requires valid signed Firebase ID Tokens.
     """
     if not authorization:
-        if settings.APP_ENV == "development" and settings.USE_MOCK_SERVICES:
-            # Development fallback user context
+        if settings.APP_ENV == "development":
             return UserContext(
                 uid="dev_student_123",
                 email="student@university.edu",
@@ -70,6 +70,14 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> UserC
         )
     
     id_token = token_parts[1]
+
+    # Local development token check
+    if id_token == "mock_dev_token" and settings.APP_ENV == "development":
+        return UserContext(
+            uid="dev_student_123",
+            email="student@university.edu",
+            name="Alex Dev Student"
+        )
     
     try:
         import firebase_admin.auth
@@ -88,12 +96,6 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> UserC
         
     except Exception as e:
         logger.warning(f"Firebase token verification failed: {e}")
-        if settings.APP_ENV == "development" and settings.USE_MOCK_SERVICES:
-            return UserContext(
-                uid="dev_student_123",
-                email="student@university.edu",
-                name="Alex Dev Student"
-            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired authentication token",
