@@ -8,11 +8,14 @@ logger = logging.getLogger("ai_mail_guardian")
 # In-memory database store for development mock mode
 _mock_db: Dict[str, Dict[str, Dict[str, Any]]] = {}
 
+from app.utils.auth import init_firebase
+
 class FirestoreService:
     def __init__(self):
         self.db = None
         if settings.FIREBASE_PROJECT_ID:
             try:
+                init_firebase()
                 from firebase_admin import firestore
                 self.db = firestore.client()
                 logger.info("Firestore client initialized successfully.")
