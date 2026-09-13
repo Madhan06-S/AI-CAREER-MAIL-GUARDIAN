@@ -1,9 +1,21 @@
 # Environment and secrets
 .env
-.env.local
-.env.*.local
+.env.*
+*.env
 *.pem
 *.key
+*.json
+!frontend/package.json
+!frontend/package-lock.json
+!backend/requirements.txt
+!tsconfig.json
+!frontend/tsconfig.json
+
+# Service Account Keys & Credentials
+*service_account*
+*firebase-adminsdk*
+credentials/
+secrets/
 
 # Python
 __pycache__/
