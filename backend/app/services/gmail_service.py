@@ -92,9 +92,13 @@ class GmailService:
         flow.fetch_token(code=code)
         credentials = flow.credentials
 
+        # Preserve existing refresh token if new exchange returns None
+        existing_doc = await firestore_service.get_document(uid, "integrations", "gmail") or {}
+        refresh_token = credentials.refresh_token or existing_doc.get("refresh_token")
+
         token_data = {
             "token": credentials.token,
-            "refresh_token": credentials.refresh_token,
+            "refresh_token": refresh_token,
             "token_uri": credentials.token_uri,
             "client_id": credentials.client_id,
             "client_secret": credentials.client_secret,
@@ -109,7 +113,7 @@ class GmailService:
     async def get_user_credentials(self, uid: str) -> Optional[Credentials]:
         """Retrieves and auto-refreshes Google OAuth Credentials from users/{uid}/integrations/gmail"""
         token_data = await firestore_service.get_document(uid, "integrations", "gmail")
-        if not token_data:
+        if not token_data or not token_data.get("token"):
             return None
 
         if settings.APP_ENV == "development" and settings.USE_MOCK_SERVICES and token_data.get("token") == "mock_access_token_12345":
@@ -137,6 +141,28 @@ class GmailService:
                 logger.error(f"Failed to refresh Gmail OAuth token for user {uid}: {e}")
 
         return creds
+
+    async def test_gmail_connection(self, uid: str) -> Dict[str, Any]:
+        """
+        Executes a real Gmail API profile call GET https://gmail.googleapis.com/gmail/v1/users/me/profile
+        to verify active OAuth credentials.
+        """
+        creds = await self.get_user_credentials(uid)
+        if not creds:
+            return {"success": False, "http_status": 401, "error": "No credentials stored for user."}
+
+        try:
+            service = build("gmail", "v1", credentials=creds)
+            profile = service.users().getProfile(userId="me").execute()
+            return {
+                "success": True,
+                "http_status": 200,
+                "email_address_present": bool(profile.get("emailAddress")),
+                "messages_total_present": "messagesTotal" in profile
+            }
+        except Exception as e:
+            logger.error(f"Gmail API profile test call failed for user {uid}: {e}")
+            return {"success": False, "http_status": getattr(e, "status_code", 500), "error": str(e)}
 
     async def fetch_recent_emails(self, uid: str, max_emails: int = 10, query: str = "") -> List[ParsedEmail]:
         """

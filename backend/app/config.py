@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Google OAuth 2.0
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
-    GOOGLE_REDIRECT_URI: str = "http://localhost:5173/oauth/callback"
+    GOOGLE_REDIRECT_URI: str = "http://localhost:5175/oauth/callback"
     
     # Firebase Admin SDK
     FIREBASE_PROJECT_ID: Optional[str] = None
